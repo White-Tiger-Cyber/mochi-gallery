@@ -40,28 +40,39 @@ def list_available_styles():
     print("Usage: mochi-gallery <BLOCK> --style <SHORT_NAME>\n")
 
 def resolve_style_path(user_input):
+    """
+    Tries to find the style file based on user input.
+    1. Exact path?
+    2. Short name in assets/styles?
+    """
+    # 1. Check if user provided a full path
     if os.path.exists(user_input):
         return user_input
+
+    # 2. Check if it's a short name in the default folder
     default_path = os.path.join(os.getcwd(), "assets", "styles", f"{user_input}.json")
     if os.path.exists(default_path):
         return default_path
+
     return None
 
 def main():
     parser = argparse.ArgumentParser(description="Mochimo Gallery Generator")
     parser.add_argument("block_number", type=str, help="Mochimo Block Number (or '?' to list styles)")
     parser.add_argument("--style", type=str, help="Short name (e.g. 'ghibli') or path to JSON file", default=None)
-    parser.add_argument("--ar", type=str, help="Override aspect ratio (e.g. 16:9, 1:1)", default=None)
     parser.add_argument("--output", type=str, help="Output directory", default="output")
     parser.add_argument("--mock", action="store_true", help="Skip API calls and use placeholder images (free)")
     
+    # We allow block_number to be a string temporarily so we can catch '?' calls if user puts it there
     args = parser.parse_args()
 
     # --- HANDLE LISTING STYLES ---
+    # User might type: mochi-gallery ?  OR  mochi-gallery 123 --style ?
     if args.block_number in ["?", "list", "help"] or args.style in ["?", "list"]:
         list_available_styles()
         return
 
+    # Now validate block number is int
     try:
         block_num_int = int(args.block_number)
     except ValueError:
@@ -84,7 +95,9 @@ def main():
         
         if resolved_path:
             try:
+                # Prefix comes from the filename (e.g. ghibli.json -> ghibli_)
                 file_prefix = f"{os.path.splitext(os.path.basename(resolved_path))[0]}_"
+                
                 with open(resolved_path, 'r') as f:
                     style_data = json.load(f)
                     
@@ -101,16 +114,7 @@ def main():
                 sys.exit(1)
         else:
             print(f"Error: Style '{args.style}' not found.")
-            sys.exit(1)
-
-    # --- CLI OVERRIDE FOR ASPECT RATIO ---
-    if args.ar:
-        if args.ar in VALID_RATIOS:
-            aspect_ratio = args.ar
-            print(f"   > Enforcing CLI Aspect Ratio: {aspect_ratio}")
-        else:
-            print(f"Error: Invalid aspect ratio '{args.ar}'.")
-            print(f"Supported ratios: {', '.join(VALID_RATIOS)}")
+            print("Use 'mochi-gallery ?' to see available styles.")
             sys.exit(1)
 
     # --- EXECUTION ---
@@ -128,7 +132,6 @@ def main():
     if args.mock:
         prompt = "Mock prompt for testing logic."
     else:
-        # We pass the final aspect_ratio here so Gemini knows to prompt for "widescreen" vs "vertical"
         prompt = generate_image_prompt(client, haiku, style_data, aspect_ratio)
 
     # 2. Generate Image

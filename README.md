@@ -10,7 +10,7 @@ To use this tool, you must have a Google Cloud account with billing enabled. **I
 
 ### 1. Get Your API Key
 1. Go to [Google AI Studio](https://aistudio.google.com/).
-2. Click **Get API key** (bottom left) -> **Get API key**.
+2. Click **Get API key** (top left) -> **Create API key**.
 3. Save this string; you will need it later.
 
 ### 2. Enable "Tier 1" Pay-as-you-go
@@ -26,7 +26,7 @@ The free tier does not allow access to `imagen-4.0-generate`. You must upgrade t
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/mochi-gallery.git
+git clone https://github.com/White-Tiger-Cyber/mochi-gallery.git
 cd mochi-gallery
 ```
 
@@ -64,7 +64,7 @@ GEMINI_API_KEY="AIzaSy...YourKeyHere"
 ```
 
 ### 5. Install Fonts (Critical for "Vibes")
-The tool uses a "Holistic Vibe" engine that picks fonts based on the mood of the Haiku (e.g., Handwritten, Typewriter, Serif). If you do not install fonts, it will fall back to a generic default.
+The tool uses a "Holistic Vibe" engine that picks fonts based on the mood of the Haiku. If you do not install fonts, it will fall back to a generic default.
 
 We recommend downloading these open-source fonts into `assets/fonts/`:
 
@@ -72,19 +72,16 @@ We recommend downloading these open-source fonts into `assets/fonts/`:
 # From the project root
 cd assets/fonts
 
-# 1. Handwritten (Caveat)
+# Handwritten (Caveat) - Perfect for Nature/Ghibli/VanGogh
 wget -O handwritten_caveat.ttf "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf"
 
-# 2. Typewriter (Space Mono)
-# Space Mono is a cleaner, cooler "tech" font that lives in a standard path.
+# Typewriter (Space Mono) - Perfect for Glitch/Quantum/Giger
 wget -O typewriter_roboto.ttf https://github.com/google/fonts/raw/main/ofl/spacemono/SpaceMono-Regular.ttf
 
-# 3. Serif (Prata)
-# Playfair's variable filename is causing issues. Prata is an identical "High-Contrast Serif" 
-# perfect for the Ansel Adams / Elegant vibe, and it has a simple filename.
+# Serif (Prata) - Perfect for Ansel Adams/Classic
 wget -O serif_playfair.ttf https://github.com/google/fonts/raw/main/ofl/prata/Prata-Regular.ttf
 
-# 4. Sans (Oswald)
+# Sans (Oswald) - Perfect for Modern/Bold/Cinematic
 wget -O sans_oswald.ttf "https://github.com/google/fonts/raw/main/ofl/oswald/Oswald%5Bwght%5D.ttf"
 
 cd ../..
@@ -95,7 +92,7 @@ cd ../..
 ## Usage
 
 ### 1. Basic Generation
-Generate a poster for a specific block number using the AI's default artistic judgment.
+Generate a poster for a specific block number using the AI's default artistic judgment (Default 3:4 Aspect Ratio).
 
 ```bash
 mochi-gallery 880030
@@ -110,22 +107,28 @@ mochi-gallery ?
 # OR
 mochi-gallery list
 ```
-*This will print a table of installed styles found in `assets/styles/`.*
 
 ### 3. Using a Specific Style
 You can use the **Short Name** (the filename without `.json`) or the full path.
 
-**Ghibli Style:**
 ```bash
+# Render in Studio Ghibli style
 mochi-gallery 880030 --style ghibli
 ```
 
-**Ansel Adams Style:**
+### 4. Override Aspect Ratio
+You can force a specific aspect ratio on the fly using `--ar`. This overrides any default set by the selected Style.
+**Supported Ratios:** `1:1`, `3:4`, `4:3`, `9:16`, `16:9`.
+
 ```bash
-mochi-gallery 880030 --style ansel
+# Force a Cinematic Widescreen render of the Quantum style
+mochi-gallery 880030 --style quantum --ar 16:9
+
+# Force a Square render
+mochi-gallery 880030 --ar 1:1
 ```
 
-### 4. Mock Mode (Free Testing)
+### 5. Mock Mode (Free Testing)
 If you want to test the text overlay logic, directory structure, or font selection **without** hitting your Google API quota (or spending money), use `--mock`.
 
 ```bash
@@ -137,9 +140,7 @@ mochi-gallery 880030 --style quantum --mock
 
 ## Switching Image Models
 
-Google provides three different versions of the Imagen 4 model, each with different speeds and daily quotas. If you hit a rate limit (Error 429), switching models is often the solution.
-
-To change models, edit **`src/mochi_gallery/client.py`** and modify the `IMAGE_MODEL` variable:
+Google provides three different versions of the Imagen 4 model, each with different speeds and daily quotas. To change models, edit **`src/mochi_gallery/client.py`** and modify the `IMAGE_MODEL` variable:
 
 ### Option 1: The "Fast" Model (Recommended for Dev)
 Lowest latency, generous daily quota. Great for testing layouts and styles.
@@ -159,11 +160,9 @@ Best possible lighting and detail, but strict daily limits (approx. 30/day).
 IMAGE_MODEL = "imagen-4.0-ultra-generate-001"
 ```
 
----
-
 ## Creating Custom Styles
 
-You can create your own styles by adding a `.json` file to the `assets/styles/` folder. The filename becomes the "Short Name" (e.g., `cyberpunk.json` -> `--style cyberpunk`).
+You can create your own styles by adding a `.json` file to the `assets/styles/` folder. The filename becomes the "Short Name".
 
 **File Format:**
 ```json
@@ -174,21 +173,12 @@ You can create your own styles by adding a `.json` file to the `assets/styles/` 
 }
 ```
 
-### Supported Aspect Ratios
-Google Imagen 4 supports the following specific strings. Any other value will default to `3:4`.
-
-*   `"1:1"` (Square)
-*   `"3:4"` (Portrait Poster - *Default*)
-*   `"4:3"` (Landscape TV)
-*   `"9:16"` (Mobile Vertical)
-*   `"16:9"` (Cinematic Widescreen)
-
 ## Troubleshooting
 
 **Error: 429 RESOURCE_EXHAUSTED**
-*   This means you have hit your daily image generation limit (currently ~70 images/day for the Standard model).
+*   This means you have hit your daily image generation limit.
 *   **Solution:** Use `--mock` to keep working, or switch to the `fast` or `ultra` model in `client.py`.
 
 **Error: 404 NOT_FOUND (Model not found)**
 *   This usually means you are on the Free Tier, or your API Key project does not have Billing enabled. Refer to the "Prerequisites" section.
-*   It can also mean you made a typo in the model name (ensure it ends in `-001`).
+*   It can also mean you have the wrong Model Name in `client.py` (ensure it ends in `-001`).
