@@ -22,3 +22,9 @@ dependencies = [
 [project.scripts]
 # This allows you to run 'mochi-gallery' from anywhere in the terminal
 mochi-gallery = "mochi_gallery.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
