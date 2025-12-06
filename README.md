@@ -2,7 +2,7 @@
 
 **Mochimo Gallery** is a CLI tool that turns [Mochimo Blockchain](https://mochimo.org/) blocks into bespoke, AI-generated posters.
 
-It fetches the unique "Haiku" (nonce) from a specific block, uses **Google Gemini 2.0** to act as an Art Director to interpret the mood, and uses **Google Imagen 4.0** to render a high-fidelity illustration. Finally, it uses a holistic design engine to artistically overlay the text based on the image's composition.
+It fetches the unique "Haiku" (nonce) from a specific block, uses **Google Gemini 2.0** as an Art Director to interpret the mood, and uses **Google Imagen 4.0** to render a high-fidelity illustration. Finally, it uses a holistic design engine to artistically overlay the text based on the image's composition.
 
 ## ⚠️ Prerequisites: Google API Setup
 
@@ -91,7 +91,7 @@ cd ../..
 
 ## Usage
 
-### Basic Command
+### 1. Basic Generation
 Generate a poster for a specific block number using the AI's default artistic judgment.
 
 ```bash
@@ -99,32 +99,68 @@ mochi-gallery 880030
 ```
 *The result will be saved in `output/block_880030.png`.*
 
-### Using Art Styles
-You can force a specific artistic style using JSON definition files located in `assets/styles/`.
+### 2. Listing Available Styles
+To see what artistic styles are installed on your system:
+
+```bash
+mochi-gallery ?
+# OR
+mochi-gallery list
+```
+*This will print a table of installed styles found in `assets/styles/`.*
+
+### 3. Using a Specific Style
+You can use the **Short Name** (the filename without `.json`) or the full path.
 
 **Ghibli Style:**
 ```bash
-mochi-gallery 880030 --style assets/styles/ghibli.json
+mochi-gallery 880030 --style ghibli
 ```
 
 **Ansel Adams Style:**
 ```bash
-mochi-gallery 880030 --style assets/styles/ansel.json
+mochi-gallery 880030 --style ansel
 ```
 
-### Mock Mode (Free Testing)
+### 4. Mock Mode (Free Testing)
 If you want to test the text overlay logic, directory structure, or font selection **without** hitting your Google API quota (or spending money), use `--mock`.
 
 ```bash
-mochi-gallery 880030 --style assets/styles/quantum.json --mock
+mochi-gallery 880030 --style quantum --mock
 ```
 *This generates a placeholder grey image but runs the real typography and design engine.*
 
 ---
 
+## Switching Image Models
+
+Google provides three different versions of the Imagen 4 model, each with different speeds and daily quotas. If you hit a rate limit (Error 429), switching models is often the solution.
+
+To change models, edit **`src/mochi_gallery/client.py`** and modify the `IMAGE_MODEL` variable:
+
+### Option 1: The "Fast" Model (Recommended for Dev)
+Lowest latency, generous daily quota. Great for testing layouts and styles.
+```python
+IMAGE_MODEL = "imagen-4.0-fast-generate-001"
+```
+
+### Option 2: The "Standard" Model (Balanced)
+The default setting. Good balance of quality and quota.
+```python
+IMAGE_MODEL = "imagen-4.0-generate-001"
+```
+
+### Option 3: The "Ultra" Model (Highest Quality)
+Best possible lighting and detail, but strict daily limits (approx. 30/day).
+```python
+IMAGE_MODEL = "imagen-4.0-ultra-generate-001"
+```
+
+---
+
 ## Creating Custom Styles
 
-You can create your own styles by adding a `.json` file to the `assets/styles/` folder.
+You can create your own styles by adding a `.json` file to the `assets/styles/` folder. The filename becomes the "Short Name" (e.g., `cyberpunk.json` -> `--style cyberpunk`).
 
 **File Format:**
 ```json
@@ -144,20 +180,12 @@ Google Imagen 4 supports the following specific strings. Any other value will de
 *   `"9:16"` (Mobile Vertical)
 *   `"16:9"` (Cinematic Widescreen)
 
-### Example: `cyberpunk.json`
-```json
-{
-  "style_name": "Neon Cyberpunk",
-  "aspect_ratio": "16:9",
-  "visual_directives": "Blade Runner aesthetic, neon rain, bustling futuristic city, dark damp streets with bright neon signs reflecting in puddles. High contrast, teal and magenta color palette."
-}
-```
-
 ## Troubleshooting
 
 **Error: 429 RESOURCE_EXHAUSTED**
-*   This means you have hit your daily image generation limit (currently ~70 images/day for Tier 1).
-*   **Solution:** Use `--mock` to keep working on code/layout, or wait 24 hours.
+*   This means you have hit your daily image generation limit (currently ~70 images/day for the Standard model).
+*   **Solution:** Use `--mock` to keep working, or switch to the `fast` or `ultra` model in `client.py`.
 
 **Error: 404 NOT_FOUND (Model not found)**
 *   This usually means you are on the Free Tier, or your API Key project does not have Billing enabled. Refer to the "Prerequisites" section.
+*   It can also mean you made a typo in the model name (ensure it ends in `-001`).

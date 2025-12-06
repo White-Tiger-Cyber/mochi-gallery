@@ -2,32 +2,103 @@ import argparse
 import os
 import json
 import sys
+import glob
 from .client import get_client, fetch_haiku, generate_image_prompt, generate_image_native, get_design_directives
 from .painter import render_poster
 
+def list_available_styles():
+    """Scans the assets/styles folder and prints a formatted list."""
+    style_dir = os.path.join(os.getcwd(), "assets", "styles")
+    if not os.path.exists(style_dir):
+        print(f"Error: Style directory not found at {style_dir}")
+        return
+
+    json_files = glob.glob(os.path.join(style_dir, "*.json"))
+    
+    if not json_files:
+        print("No styles found in assets/styles/")
+        return
+
+    print(f"\nAvailable Styles ({len(json_files)} found):")
+    print(f"{'SHORT NAME':<20} | {'ASPECT':<8} | {'STYLE NAME'}")
+    print("-" * 60)
+
+    for f in sorted(json_files):
+        try:
+            filename = os.path.basename(f)
+            short_name = os.path.splitext(filename)[0]
+            
+            with open(f, 'r') as json_file:
+                data = json.load(json_file)
+                style_name = data.get("style_name", "Unknown")
+                ar = data.get("aspect_ratio", "3:4")
+                
+            print(f"{short_name:<20} | {ar:<8} | {style_name}")
+        except Exception:
+            continue
+    print("-" * 60)
+    print("Usage: mochi-gallery <BLOCK> --style <SHORT_NAME>\n")
+
+def resolve_style_path(user_input):
+    """
+    Tries to find the style file based on user input.
+    1. Exact path?
+    2. Short name in assets/styles?
+    """
+    # 1. Check if user provided a full path
+    if os.path.exists(user_input):
+        return user_input
+
+    # 2. Check if it's a short name in the default folder
+    default_path = os.path.join(os.getcwd(), "assets", "styles", f"{user_input}.json")
+    if os.path.exists(default_path):
+        return default_path
+
+    return None
+
 def main():
     parser = argparse.ArgumentParser(description="Mochimo Gallery Generator")
-    parser.add_argument("block_number", type=int, help="Mochimo Block Number")
-    parser.add_argument("--style", type=str, help="Path to JSON style file", default=None)
+    parser.add_argument("block_number", type=str, help="Mochimo Block Number (or '?' to list styles)")
+    parser.add_argument("--style", type=str, help="Short name (e.g. 'ghibli') or path to JSON file", default=None)
     parser.add_argument("--output", type=str, help="Output directory", default="output")
+    parser.add_argument("--mock", action="store_true", help="Skip API calls and use placeholder images (free)")
     
+    # We allow block_number to be a string temporarily so we can catch '?' calls if user puts it there
     args = parser.parse_args()
+
+    # --- HANDLE LISTING STYLES ---
+    # User might type: mochi-gallery ?  OR  mochi-gallery 123 --style ?
+    if args.block_number in ["?", "list", "help"] or args.style in ["?", "list"]:
+        list_available_styles()
+        return
+
+    # Now validate block number is int
+    try:
+        block_num_int = int(args.block_number)
+    except ValueError:
+        print(f"Error: Block number '{args.block_number}' must be an integer.")
+        return
 
     # Setup directories
     os.makedirs(args.output, exist_ok=True)
     os.makedirs(os.path.join(args.output, "raw"), exist_ok=True)
 
-    # Load Style
+    # --- INITIALIZATION ---
     style_data = None
     file_prefix = ""
-    aspect_ratio = "3:4"
+    aspect_ratio = "3:4" 
     VALID_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"]
 
+    # --- LOAD STYLE ---
     if args.style:
-        if os.path.exists(args.style):
+        resolved_path = resolve_style_path(args.style)
+        
+        if resolved_path:
             try:
-                file_prefix = f"{os.path.splitext(os.path.basename(args.style))[0]}_"
-                with open(args.style, 'r') as f:
+                # Prefix comes from the filename (e.g. ghibli.json -> ghibli_)
+                file_prefix = f"{os.path.splitext(os.path.basename(resolved_path))[0]}_"
+                
+                with open(resolved_path, 'r') as f:
                     style_data = json.load(f)
                     
                 if "aspect_ratio" in style_data:
@@ -35,34 +106,47 @@ def main():
                         aspect_ratio = style_data["aspect_ratio"]
                     else:
                         print(f"Warning: Invalid aspect ratio in JSON. Defaulting to 3:4.")
+                        
+                print(f"   > Loaded Style: {style_data.get('style_name', 'Custom')} ({aspect_ratio})")
+                
             except Exception as e:
                 print(f"Error loading style: {e}")
                 sys.exit(1)
         else:
-            print(f"Style file not found: {args.style}")
+            print(f"Error: Style '{args.style}' not found.")
+            print("Use 'mochi-gallery ?' to see available styles.")
             sys.exit(1)
 
-    # Execution Flow
+    # --- EXECUTION ---
     client = get_client()
-    haiku = fetch_haiku(args.block_number)
+    haiku = fetch_haiku(block_num_int)
     
     if not haiku or "no haiku" in haiku.lower():
         print("No haiku found.")
         return
 
-    print(f"--- Block {args.block_number} ---")
+    print(f"--- Block {block_num_int} ---")
     print(haiku)
 
-    prompt = generate_image_prompt(client, haiku, style_data, aspect_ratio)
-    img = generate_image_native(client, prompt, aspect_ratio)
+    # 1. Generate Prompt
+    if args.mock:
+        prompt = "Mock prompt for testing logic."
+    else:
+        prompt = generate_image_prompt(client, haiku, style_data, aspect_ratio)
+
+    # 2. Generate Image
+    img = generate_image_native(client, prompt, aspect_ratio, mock=args.mock)
     
-    raw_path = os.path.join(args.output, "raw", f"{file_prefix}raw_{args.block_number}.png")
+    raw_path = os.path.join(args.output, "raw", f"{file_prefix}raw_{block_num_int}.png")
     img.save(raw_path)
 
+    # 3. Design Analysis
     design = get_design_directives(client, img, haiku)
-    poster = render_poster(img, haiku, args.block_number, design)
     
-    out_path = os.path.join(args.output, f"{file_prefix}block_{args.block_number}.png")
+    # 4. Render
+    poster = render_poster(img, haiku, block_num_int, design)
+    
+    out_path = os.path.join(args.output, f"{file_prefix}block_{block_num_int}.png")
     poster.save(out_path)
     print(f"Saved: {out_path}")
 
