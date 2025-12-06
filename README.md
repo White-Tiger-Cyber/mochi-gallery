@@ -4,6 +4,8 @@
 
 It fetches the unique "Haiku" (nonce) from a specific block, uses **Google Gemini 2.0** as an Art Director to interpret the mood, and uses **Google Imagen 4.0** to render a high-fidelity illustration. Finally, it uses a holistic design engine to artistically overlay the text based on the image's composition.
 
+> **Project Status:** This is an experimental creative tool. It is designed to be run locally from the cloned repository.
+
 ## ⚠️ Prerequisites: Google API Setup
 
 To use this tool, you must have a Google Cloud account with billing enabled. **Image generation via the API (Imagen 4) is a paid feature** (Pay-as-you-go), though the cost is generally low per image.
@@ -23,6 +25,8 @@ The free tier does not allow access to `imagen-4.0-generate`. You must upgrade t
    - *Cost:* Pricing varies, but is typically ~$0.03 - $0.06 per high-quality image generation.
 
 ## Installation
+
+**Note:** This tool relies on local assets (`assets/styles` and `assets/fonts`). You must clone the repository and run it from within the directory.
 
 ### 1. Clone the Repository
 ```bash
@@ -123,9 +127,6 @@ You can force a specific aspect ratio on the fly using `--ar`. This overrides an
 ```bash
 # Force a Cinematic Widescreen render of the Quantum style
 mochi-gallery 880030 --style quantum --ar 16:9
-
-# Force a Square render
-mochi-gallery 880030 --ar 1:1
 ```
 
 ### 5. Mock Mode (Free Testing)
@@ -182,3 +183,6 @@ You can create your own styles by adding a `.json` file to the `assets/styles/` 
 **Error: 404 NOT_FOUND (Model not found)**
 *   This usually means you are on the Free Tier, or your API Key project does not have Billing enabled. Refer to the "Prerequisites" section.
 *   It can also mean you have the wrong Model Name in `client.py` (ensure it ends in `-001`).
+
+## License
+MIT License. See [LICENSE](LICENSE) file for details.
