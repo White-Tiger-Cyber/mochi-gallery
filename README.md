@@ -10,7 +10,7 @@ To use this tool, you must have a Google Cloud account with billing enabled. **I
 
 ### 1. Get Your API Key
 1. Go to [Google AI Studio](https://aistudio.google.com/).
-2. Click **Get API key** (top left) -> **Create API key**.
+2. Click **Get API key** (bottom left) -> **Get API key**.
 3. Save this string; you will need it later.
 
 ### 2. Enable "Tier 1" Pay-as-you-go
@@ -72,17 +72,18 @@ We recommend downloading these open-source fonts into `assets/fonts/`:
 # From the project root
 cd assets/fonts
 
-# Handwritten (Nature/Ghibli/VanGogh)
-wget -O handwritten_caveat.ttf https://github.com/google/fonts/raw/main/ofl/caveat/Caveat-Regular.ttf
+# Handwritten (Caveat) - Perfect for Nature/Ghibli/VanGogh
+wget -O handwritten_caveat.ttf "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf"
 
-# Typewriter (Glitch/Quantum/Giger)
-wget -O typewriter_roboto.ttf https://github.com/google/fonts/raw/main/apache/robotomono/RobotoMono-Regular.ttf
+# Typewriter (Roboto Mono) - Perfect for Glitch/Quantum/Giger
+wget -O typewriter_roboto.ttf "https://github.com/google/fonts/raw/main/apache/robotomono/RobotoMono%5Bwght%5D.ttf"
 
-# Serif (Ansel Adams/Classic)
-wget -O serif_playfair.ttf https://github.com/google/fonts/raw/main/ofl/playfairdisplay/PlayfairDisplay-Regular.ttf
+# Serif (Playfair Display) - Perfect for Ansel Adams/Classic
+# Note: This is a Variable Font containing all weights
+wget -O serif_playfair.ttf "https://github.com/google/fonts/raw/main/ofl/playfairdisplay/PlayfairDisplay%5Bopsz%2Cwdth%2Cwght%5D.ttf"
 
-# Sans (Modern/Cinematic)
-wget -O sans_oswald.ttf https://github.com/google/fonts/raw/main/ofl/oswald/Oswald-Regular.ttf
+# Sans (Oswald) - Perfect for Modern/Bold/Cinematic
+wget -O sans_oswald.ttf "https://github.com/google/fonts/raw/main/ofl/oswald/Oswald%5Bwght%5D.ttf"
 
 cd ../..
 ```
