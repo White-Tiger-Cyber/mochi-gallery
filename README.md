@@ -101,7 +101,7 @@ Generate a poster for a specific block number using the AI's default artistic ju
 ```bash
 mochi-gallery 880030
 ```
-*The result will be saved in `output/block_880030.png`.*
+*The result will be saved in `output/block_880030.png`. Metadata regarding the Haiku and Generation parameters is embedded in the PNG headers.*
 
 ### 2. Listing Available Styles
 To see what artistic styles are installed on your system:
@@ -129,7 +129,22 @@ You can force a specific aspect ratio on the fly using `--ar`. This overrides an
 mochi-gallery 880030 --style quantum --ar 16:9
 ```
 
-### 5. Mock Mode (Free Testing)
+### 5. Switching Models (Speed vs Quality)
+You can switch between three Google Imagen models using the `--model` flag. This is useful for saving money during testing or getting maximum quality for final prints.
+
+*   `fast`: **Imagen 4 Fast**. Lowest latency, lower cost. Great for iteration.
+*   `standard`: **Imagen 4**. (Default). Good balance of quality and quota.
+*   `ultra`: **Imagen 4 Ultra**. Highest fidelity and lighting, but strict daily limits (~30/day).
+
+```bash
+# Quick test
+mochi-gallery 880030 --model fast
+
+# Masterpiece render
+mochi-gallery 880030 --style ansel --model ultra
+```
+
+### 6. Mock Mode (Free Testing)
 If you want to test the text overlay logic, directory structure, or font selection **without** hitting your Google API quota (or spending money), use `--mock`.
 
 ```bash
@@ -138,28 +153,6 @@ mochi-gallery 880030 --style quantum --mock
 *This generates a placeholder grey image but runs the real typography and design engine.*
 
 ---
-
-## Switching Image Models
-
-Google provides three different versions of the Imagen 4 model, each with different speeds and daily quotas. To change models, edit **`src/mochi_gallery/client.py`** and modify the `IMAGE_MODEL` variable:
-
-### Option 1: The "Fast" Model (Recommended for Dev)
-Lowest latency, generous daily quota. Great for testing layouts and styles.
-```python
-IMAGE_MODEL = "imagen-4.0-fast-generate-001"
-```
-
-### Option 2: The "Standard" Model (Balanced)
-The default setting. Good balance of quality and quota.
-```python
-IMAGE_MODEL = "imagen-4.0-generate-001"
-```
-
-### Option 3: The "Ultra" Model (Highest Quality)
-Best possible lighting and detail, but strict daily limits (approx. 30/day).
-```python
-IMAGE_MODEL = "imagen-4.0-ultra-generate-001"
-```
 
 ## Creating Custom Styles
 
@@ -178,11 +171,10 @@ You can create your own styles by adding a `.json` file to the `assets/styles/` 
 
 **Error: 429 RESOURCE_EXHAUSTED**
 *   This means you have hit your daily image generation limit.
-*   **Solution:** Use `--mock` to keep working, or switch to the `fast` or `ultra` model in `client.py`.
+*   **Solution:** Switch models! If `standard` is out, try `--model fast`. Or use `--mock` to keep working on layout logic.
 
 **Error: 404 NOT_FOUND (Model not found)**
 *   This usually means you are on the Free Tier, or your API Key project does not have Billing enabled. Refer to the "Prerequisites" section.
-*   It can also mean you have the wrong Model Name in `client.py` (ensure it ends in `-001`).
 
 ## License
 MIT License. See [LICENSE](LICENSE) file for details.
