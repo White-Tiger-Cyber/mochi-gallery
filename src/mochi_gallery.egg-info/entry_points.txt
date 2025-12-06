@@ -1,0 +1,2 @@
+[console_scripts]
+mochi-gallery = mochi_gallery.cli:main
