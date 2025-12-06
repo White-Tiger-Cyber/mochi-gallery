@@ -72,17 +72,19 @@ We recommend downloading these open-source fonts into `assets/fonts/`:
 # From the project root
 cd assets/fonts
 
-# Handwritten (Caveat) - Perfect for Nature/Ghibli/VanGogh
+# 1. Handwritten (Caveat)
 wget -O handwritten_caveat.ttf "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf"
 
-# Typewriter (Roboto Mono) - Perfect for Glitch/Quantum/Giger
-wget -O typewriter_roboto.ttf "https://github.com/google/fonts/raw/main/apache/robotomono/RobotoMono%5Bwght%5D.ttf"
+# 2. Typewriter (Space Mono)
+# Space Mono is a cleaner, cooler "tech" font that lives in a standard path.
+wget -O typewriter_roboto.ttf https://github.com/google/fonts/raw/main/ofl/spacemono/SpaceMono-Regular.ttf
 
-# Serif (Playfair Display) - Perfect for Ansel Adams/Classic
-# Note: This is a Variable Font containing all weights
-wget -O serif_playfair.ttf "https://github.com/google/fonts/raw/main/ofl/playfairdisplay/PlayfairDisplay%5Bopsz%2Cwdth%2Cwght%5D.ttf"
+# 3. Serif (Prata)
+# Playfair's variable filename is causing issues. Prata is an identical "High-Contrast Serif" 
+# perfect for the Ansel Adams / Elegant vibe, and it has a simple filename.
+wget -O serif_playfair.ttf https://github.com/google/fonts/raw/main/ofl/prata/Prata-Regular.ttf
 
-# Sans (Oswald) - Perfect for Modern/Bold/Cinematic
+# 4. Sans (Oswald)
 wget -O sans_oswald.ttf "https://github.com/google/fonts/raw/main/ofl/oswald/Oswald%5Bwght%5D.ttf"
 
 cd ../..
