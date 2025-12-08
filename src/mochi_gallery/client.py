@@ -11,7 +11,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MOCHISAN_API_URL = "https://dev-api.mochiscan.org:8443/block"
-TEXT_MODEL = "gemini-2.0-flash"
+    
+# OLD
+# TEXT_MODEL = "gemini-2.0-flash"
+
+# NEW - Use the stable 1.5 Flash model
+TEXT_MODEL = "gemini-2.5-flash"
 
 # Model Short-name Mapping
 MODEL_MAP = {
