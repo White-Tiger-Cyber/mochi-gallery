@@ -13,6 +13,7 @@ assets/styles/giger.json
 assets/styles/oil_paint.json
 assets/styles/picasso.json
 assets/styles/pointilism.json
+assets/styles/popart.json
 assets/styles/quantum.json
 assets/styles/vangogh.json
 assets/styles/watercolor.json

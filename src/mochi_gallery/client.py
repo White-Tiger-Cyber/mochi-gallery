@@ -11,14 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MOCHISAN_API_URL = "https://dev-api.mochiscan.org:8443/block"
-    
-# OLD
-# TEXT_MODEL = "gemini-2.0-flash"
 
-# NEW - Use the stable 1.5 Flash model
-TEXT_MODEL = "gemini-2.5-flash"
-
-# Model Short-name Mapping
+# Model Short-name Mapping (For Images)
 MODEL_MAP = {
     "fast": "imagen-4.0-fast-generate-001",
     "standard": "imagen-4.0-generate-001",
@@ -47,8 +41,9 @@ def fetch_haiku(block_number: int) -> str:
         print(f"Error fetching block data: {e}")
         return ""
 
-def generate_image_prompt(client, haiku: str, style_data: dict = None, aspect_ratio: str = "3:4") -> str:
-    print(f"1. Dreaming up the scene...")
+# ADDED: text_model parameter
+def generate_image_prompt(client, haiku: str, style_data: dict = None, aspect_ratio: str = "3:4", text_model: str = "gemini-2.0-flash") -> str:
+    print(f"1. Dreaming up the scene (using {text_model})...")
     style_instruction = "You are a visual art director. Create a SINGLE, detailed text-to-image prompt."
     
     if style_data:
@@ -69,7 +64,8 @@ def generate_image_prompt(client, haiku: str, style_data: dict = None, aspect_ra
     )
     
     try:
-        response = client.models.generate_content(model=TEXT_MODEL, contents=prompt_text)
+        # CHANGED: Use text_model variable instead of global
+        response = client.models.generate_content(model=text_model, contents=prompt_text)
         return response.text.strip()
     except Exception as e:
         sys.exit(f"Error generating prompt: {e}")
@@ -103,16 +99,18 @@ def generate_image_native(client, prompt: str, aspect_ratio: str = "3:4", model_
         else:
             sys.exit(f"Error painting image: {e}")
 
-def get_design_directives(client, image: Image.Image, haiku: str) -> DesignDirectives:
-    print(f"3. Analyzing composition...")
+# ADDED: text_model parameter
+def get_design_directives(client, image: Image.Image, haiku: str, text_model: str = "gemini-2.0-flash") -> DesignDirectives:
+    print(f"3. Analyzing composition (using {text_model})...")
     prompt = (
         "Act as a Senior Graphic Designer. I need to overlay this Haiku on the image:\n"
         f"'{haiku}'\n"
         "Identify visual weight and negative space. Return JSON plan."
     )
     try:
+        # CHANGED: Use text_model variable instead of global
         response = client.models.generate_content(
-            model=TEXT_MODEL, contents=[prompt, image],
+            model=text_model, contents=[prompt, image],
             config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=DesignDirectives)
         )
         return response.parsed
