@@ -16,7 +16,8 @@ dependencies = [
     "requests",
     "pillow",
     "pydantic",
-    "python-dotenv"
+    "python-dotenv",
+    "flask"
 ]
 
 [project.scripts]

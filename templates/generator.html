@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mochimo Art Studio</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        :root { --bg: #0a0a0a; --card: #141414; --text: #e0e0e0; --accent: #00ff41; }
+        body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; padding: 40px; }
+        
+        .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        
+        h1 { color: #fff; margin-top: 0; letter-spacing: -2px; }
+        .logo { width: 60px; display: block; margin-bottom: 20px; }
+        
+        /* Form Styling */
+        label { display: block; color: var(--accent); font-size: 0.8rem; margin-bottom: 5px; margin-top: 20px; font-weight: bold; }
+        input, select { 
+            width: 100%; background: #222; border: 1px solid #333; color: #fff; 
+            padding: 10px; font-family: inherit; font-size: 1rem; border-radius: 4px; 
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+        
+        button {
+            margin-top: 30px; width: 100%; padding: 15px; background: var(--accent); color: #000;
+            border: none; font-weight: bold; font-size: 1.1rem; cursor: pointer; border-radius: 4px;
+            transition: all 0.2s;
+        }
+        button:hover { box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
+        button:disabled { background: #333; color: #666; cursor: wait; }
+
+        /* Preview Area */
+        .preview-box { 
+            background: var(--card); border: 1px solid #333; border-radius: 8px; 
+            padding: 20px; min-height: 500px; display: flex; align-items: center; justify-content: center;
+            text-align: center;
+        }
+        
+        .haiku-preview { font-style: italic; white-space: pre-wrap; line-height: 1.5; font-size: 1.1rem; border-left: 3px solid var(--accent); padding-left: 15px; }
+        
+        /* Loading Animation */
+        .htmx-indicator { display: none; }
+        .htmx-request .htmx-indicator { display: inline; }
+        .htmx-request.htmx-indicator { display: inline; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- LEFT: CONTROLS -->
+        <div class="controls">
+            <img src="/assets/img/logo.png" class="logo">
+            <h1>MOCHIMO STUDIO</h1>
+            
+            <form hx-post="/generate" hx-target="#result-area" hx-indicator="#loading">
+                
+                <label>BLOCK NUMBER</label>
+                <!-- hx-post on the input triggers haiku fetch when user stops typing -->
+                <input type="number" name="block_num" placeholder="880030" required
+                       hx-post="/api/haiku" hx-trigger="keyup changed delay:500ms" hx-target="#haiku-area">
+                
+                <div id="haiku-area" style="margin-top: 15px; min-height: 80px;">
+                    <span style="color:#444">...enter block to preview haiku...</span>
+                </div>
+
+                <label>ART STYLE</label>
+                <select name="style">
+                    <option value="none">No Style (Default)</option>
+                    {% for style in styles %}
+                    <option value="{{ style.id }}">{{ style.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>IMAGE MODEL</label>
+                <select name="model">
+                    <option value="standard" selected>Imagen 4.0 (Standard)</option>
+                    <option value="fast">Imagen 4.0 Fast (Cheaper)</option>
+                    <option value="ultra">Imagen 4.0 Ultra (Best)</option>
+                </select>
+
+                <label>ASPECT RATIO</label>
+                <select name="ar">
+                    <option value="3:4" selected>3:4 (Portrait)</option>
+                    <option value="16:9">16:9 (Cinema)</option>
+                    <option value="1:1">1:1 (Square)</option>
+                    <option value="9:16">9:16 (Mobile)</option>
+                </select>
+
+                <label>TEXT MODEL</label>
+                <select name="text_model">
+                    <option value="gemini-3-pro-preview">Gemini 3.0 Pro (Preview)</option>
+                    <option value="gemini-2.0-flash" selected>Gemini 2.0 Flash</option>
+                    <option value="gemini-1.5-flash-002">Gemini 1.5 Flash</option>
+                </select>
+
+                <button type="submit">
+                    GENERATE ARTIFACT
+                    <span id="loading" class="htmx-indicator">...PROCESSING...</span>
+                </button>
+            </form>
+            
+            <p style="margin-top: 30px; text-align: center;">
+                <a href="/gallery" target="_blank" style="color: #666; text-decoration: none;">VIEW GALLERY &rarr;</a>
+            </p>
+        </div>
+
+        <!-- RIGHT: RESULT -->
+        <div id="result-area" class="preview-box">
+            <div style="color: #444;">
+                ARTIFACT PREVIEW
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
