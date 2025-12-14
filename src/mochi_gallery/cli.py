@@ -195,10 +195,10 @@ def main():
 
     print("\n--- Batch Complete ---")
     
-    # --- WEB GALLERY UPDATE ---
+# --- WEB GALLERY UPDATE ---
     try:
+        # This function now handles everything (JSON + HTML generation)
         update_gallery_manifest(args.output)
-        create_web_viewer(args.output)
     except Exception as e:
         print(f"   [WARN] Failed to update web gallery: {e}")
 
