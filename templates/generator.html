@@ -63,13 +63,27 @@
                     <span style="color:#444">...enter block to preview haiku...</span>
                 </div>
 
-                <label>ART STYLE</label>
-                <select name="style">
-                    <option value="none">No Style (Default)</option>
-                    {% for style in styles %}
-                    <option value="{{ style.id }}">{{ style.name }}</option>
-                    {% endfor %}
-                </select>
+                <!-- STYLE SELECTION GRID -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label>PRIMARY STYLE</label>
+                        <select name="style_1">
+                            <option value="none">No Style (Default)</option>
+                            {% for style in styles %}
+                            <option value="{{ style.id }}">{{ style.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label>SECONDARY (MIX)</label>
+                        <select name="style_2">
+                            <option value="none" selected>None</option>
+                            {% for style in styles %}
+                            <option value="{{ style.id }}">{{ style.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
 
                 <label>IMAGE MODEL</label>
                 <select name="model">

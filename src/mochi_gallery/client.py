@@ -99,25 +99,38 @@ def generate_image_native(client, prompt: str, aspect_ratio: str = "3:4", model_
         else:
             sys.exit(f"Error painting image: {e}")
 
-# ADDED: text_model parameter
 def get_design_directives(client, image: Image.Image, haiku: str, text_model: str = "gemini-2.0-flash") -> DesignDirectives:
     print(f"3. Analyzing composition (using {text_model})...")
+    
+    # 1. Define the Fallback Object first (so we can use it in multiple places)
+    fallback = DesignDirectives(
+        composition_analysis="Error or Safety Filter Triggered", 
+        text_color_hex="#FFFFFF", 
+        shadow_color_hex="#000000", 
+        shadow_strength=180, 
+        y_position_percent=50, 
+        font_vibe="serif"
+    )
+
     prompt = (
         "Act as a Senior Graphic Designer. I need to overlay this Haiku on the image:\n"
         f"'{haiku}'\n"
         "Identify visual weight and negative space. Return JSON plan."
     )
+    
     try:
-        # CHANGED: Use text_model variable instead of global
         response = client.models.generate_content(
             model=text_model, contents=[prompt, image],
             config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=DesignDirectives)
         )
-        return response.parsed
+        
+        # FIX: Explicitly check if parsed data exists
+        if response.parsed:
+            return response.parsed
+        else:
+            print(f"   [WARN] Design AI returned empty response (likely Safety Filter). Using defaults.")
+            return fallback
+
     except Exception as e:
-        print(f"Design AI failed ({e}), using defaults.")
-        return DesignDirectives(
-            composition_analysis="Error", text_color_hex="#FFFFFF", 
-            shadow_color_hex="#000000", shadow_strength=180, 
-            y_position_percent=50, font_vibe="serif"
-        )
+        print(f"   [WARN] Design AI failed ({e}), using defaults.")
+        return fallback

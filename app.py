@@ -77,7 +77,11 @@ def get_haiku_text():
 @app.route('/generate', methods=['POST'])
 def generate():
     block_num = int(request.form.get('block_num'))
-    style_id = request.form.get('style')
+    
+    # CHANGED: Get both styles
+    style_id_1 = request.form.get('style_1')
+    style_id_2 = request.form.get('style_2')
+    
     model = request.form.get('model')
     ar = request.form.get('ar')
     text_model = request.form.get('text_model')
@@ -85,23 +89,67 @@ def generate():
     client = get_client()
     haiku = fetch_haiku(block_num)
     
+    # --- STYLE MERGING LOGIC ---
     style_data = None
-    if style_id != "none":
-        path = os.path.join(STYLE_DIR, f"{style_id}.json")
+    active_styles = []
+    
+    # Helper to load a style dict
+    def load_style_json(sid):
+        if not sid or sid == "none": return None
+        path = os.path.join(STYLE_DIR, f"{sid}.json")
         if os.path.exists(path):
-            with open(path, 'r') as f: style_data = json.load(f)
+            with open(path, 'r') as f: return json.load(f)
+        return None
 
+    s1_data = load_style_json(style_id_1)
+    s2_data = load_style_json(style_id_2)
+
+    # Logic: 
+    # 1. If only S1: Use S1
+    # 2. If only S2: Use S2
+    # 3. If Both: Merge them
+    
+    if s1_data and not s2_data:
+        style_data = s1_data
+        active_styles.append(style_id_1)
+    elif s2_data and not s1_data:
+        style_data = s2_data
+        active_styles.append(style_id_2)
+    elif s1_data and s2_data:
+        # The Merge
+        active_styles = [style_id_1, style_id_2]
+        style_data = {
+            "style_name": f"{s1_data.get('style_name')} + {s2_data.get('style_name')}",
+            "visual_directives": (
+                "COMBINE THE FOLLOWING STYLES INTO A COHESIVE IMAGE:\n\n"
+                f"--- STYLE 1: {s1_data.get('style_name')} ---\n{s1_data.get('visual_directives')}\n\n"
+                f"--- STYLE 2: {s2_data.get('style_name')} ---\n{s2_data.get('visual_directives')}"
+            ),
+            # Default to S1's Aspect Ratio, unless S1 is missing it
+            "aspect_ratio": s1_data.get("aspect_ratio", s2_data.get("aspect_ratio"))
+        }
+
+    # Generate Prompt
     prompt = generate_image_prompt(client, haiku, style_data, ar, text_model=text_model)
+    
+    # Paint
     img = generate_image_native(client, prompt, ar, model)
+    
+    # Design
     design = get_design_directives(client, img, haiku, text_model=text_model)
     poster = render_poster(img, haiku, block_num, design)
     
-    filename = f"{style_id if style_id else 'custom'}_block_{block_num}_{int(time.time())}.png"
+    # Save
+    style_prefix = "_".join(active_styles) if active_styles else "custom"
+    filename = f"{style_prefix}_block_{block_num}_{int(time.time())}.png"
     save_path = os.path.join(OUTPUT_DIR, filename)
     
     meta = PngInfo()
     meta.add_text("Haiku", haiku)
     meta.add_text("Block", str(block_num))
+    if style_data:
+        meta.add_text("Style", style_data.get("style_name", "Custom"))
+        
     poster.save(save_path, pnginfo=meta)
     
     return render_template('partial_result.html', filename=filename, prompt=prompt)
