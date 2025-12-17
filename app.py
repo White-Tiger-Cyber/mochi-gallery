@@ -154,6 +154,32 @@ def generate():
     
     return render_template('partial_result.html', filename=filename, prompt=prompt)
 
+# --- NEW ROUTE: Soft Delete ---
+@app.route('/delete', methods=['POST'])
+def delete_artifact():
+    filename = request.form.get('filename')
+    
+    # Security: Prevent directory traversal
+    if not filename or '..' in filename or '/' in filename:
+        return "Invalid filename", 400
+
+    src_path = os.path.join(OUTPUT_DIR, filename)
+    trash_dir = os.path.join(OUTPUT_DIR, 'deleted')
+    os.makedirs(trash_dir, exist_ok=True)
+    dst_path = os.path.join(trash_dir, filename)
+
+    if os.path.exists(src_path):
+        try:
+            # Move file to trash
+            os.rename(src_path, dst_path)
+            # Rebuild gallery.json immediately
+            update_gallery_manifest(OUTPUT_DIR)
+            return "OK", 200
+        except Exception as e:
+            return str(e), 500
+    else:
+        return "File not found", 404
+
 if __name__ == '__main__':
     print("Starting Flask Server...")
     app.run(debug=True, port=5000, host='0.0.0.0')
