@@ -43,15 +43,13 @@ def update_gallery_manifest(output_dir):
 
 def create_web_viewer(output_dir, data):
     """
-    Generates index.html using a safe string template (no f-string) to avoid syntax errors.
+    Generates index.html with Masonry, Filtering, Lightbox, and PAGINATION.
     """
     html_path = os.path.join(output_dir, "index.html")
     
     # Serialize data to JSON string
     json_data = json.dumps(data)
 
-    # NOTE: This is a STANDARD string, not an f-string. 
-    # We use __JSON_DATA__ as a placeholder to replace later.
     html_template = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,6 +70,7 @@ def create_web_viewer(output_dir, data):
         h1 { font-size: 2.5rem; margin: 0; letter-spacing: -2px; color: #fff; }
         .subtitle { color: var(--accent); font-size: 0.9rem; margin-top: 10px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
         
+        /* Filters */
         #filters { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
         .filter-btn { 
             background: #202020; color: #666; border: 1px solid #333; padding: 8px 16px; 
@@ -81,7 +80,21 @@ def create_web_viewer(output_dir, data):
         .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
         .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
 
-        .gallery { max-width: 1800px; margin: 0 auto; }
+        /* Pagination Bar */
+        #pagination-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            max-width: 1800px; margin: 20px auto; padding: 10px; background: #111; border: 1px solid #222; border-radius: 4px;
+        }
+        .page-controls { display: flex; align-items: center; gap: 15px; }
+        select { background: #222; color: #fff; border: 1px solid #444; padding: 5px; border-radius: 4px; font-family: inherit; }
+        .page-btn {
+            background: #222; color: var(--accent); border: 1px solid #444; padding: 5px 15px; cursor: pointer; border-radius: 4px;
+        }
+        .page-btn:disabled { color: #444; border-color: #222; cursor: default; }
+        .page-btn:hover:not(:disabled) { border-color: var(--accent); }
+        #page-info { font-size: 0.9rem; color: #888; }
+
+        .gallery { max-width: 1800px; margin: 0 auto; min-height: 500px; }
         
         .card { 
             width: 320px; margin-bottom: 20px; background: var(--card); border-radius: 4px; 
@@ -135,15 +148,33 @@ def create_web_viewer(output_dir, data):
 <body>
 
 <header>
-    <!-- Logo with Absolute Path -->
     <img src="/assets/img/logo.png" alt="Mochimo Logo" class="logo">
-    
     <h1>MOCHIMO GALLERY</h1>
     <div class="subtitle">AI-GENERATED BLOCKCHAIN ARTIFACTS</div>
+    
     <div id="filters">
         <button id="btn-all" class="filter-btn active" onclick="toggleFilter('all')">ALL</button>
     </div>
 </header>
+
+<!-- Pagination Control Bar -->
+<div id="pagination-bar">
+    <div class="page-controls">
+        <label for="pageSize" style="color: #666; font-size: 0.8rem;">ITEMS PER PAGE:</label>
+        <select id="pageSize" onchange="changePageSize()">
+            <option value="20">20</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="999999">ALL</option>
+        </select>
+    </div>
+    
+    <div class="page-controls">
+        <button id="btn-prev" class="page-btn" onclick="changePage(-1)">PREV</button>
+        <span id="page-info">Page 1 of 1</span>
+        <button id="btn-next" class="page-btn" onclick="changePage(1)">NEXT</button>
+    </div>
+</div>
 
 <div class="gallery" id="gallery"></div>
 
@@ -168,12 +199,17 @@ def create_web_viewer(output_dir, data):
     const container = document.getElementById('gallery');
     const filterNav = document.getElementById('filters');
     
+    // State
     let activeFilters = new Set();
-    let currentItems = []; 
-    let currentIndex = 0; 
+    let filteredData = DATA; // Contains all items matching current filters
+    let currentViewData = []; // Contains only items on current page
     let msnry; 
+    
+    // Pagination State
+    let currentPage = 1;
+    let itemsPerPage = 50;
 
-    // Filters
+    // 1. Initialize Filters
     const styles = [...new Set(DATA.map(i => i.style))].sort();
     styles.forEach(style => {
         const btn = document.createElement('button');
@@ -184,14 +220,49 @@ def create_web_viewer(output_dir, data):
         filterNav.appendChild(btn);
     });
 
-    // Render
+    // 2. Pagination Logic
+    function applyPagination() {
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        currentViewData = filteredData.slice(start, end);
+        
+        render(currentViewData);
+        updatePaginationControls();
+    }
+
+    function changePageSize() {
+        itemsPerPage = parseInt(document.getElementById('pageSize').value);
+        currentPage = 1; // Reset to start
+        applyPagination();
+    }
+
+    function changePage(delta) {
+        const maxPage = Math.ceil(filteredData.length / itemsPerPage);
+        const newPage = currentPage + delta;
+        
+        if (newPage >= 1 && newPage <= maxPage) {
+            currentPage = newPage;
+            applyPagination();
+            // Scroll to top of gallery smoothly
+            document.getElementById('pagination-bar').scrollIntoView({behavior: 'smooth'});
+        }
+    }
+
+    function updatePaginationControls() {
+        const maxPage = Math.ceil(filteredData.length / itemsPerPage) || 1;
+        document.getElementById('page-info').innerText = `Page ${currentPage} of ${maxPage}`;
+        document.getElementById('btn-prev').disabled = (currentPage === 1);
+        document.getElementById('btn-next').disabled = (currentPage === maxPage);
+    }
+
+    // 3. Render
     function render(items) {
-        currentItems = items;
         if (msnry) msnry.destroy();
         container.innerHTML = '';
         items.forEach((item, index) => {
             const card = document.createElement('div');
             card.className = 'card';
+            // Important: Lightbox index now refers to currentViewData index
             card.onclick = () => openLightbox(index);
             
             card.innerHTML = `
@@ -209,56 +280,64 @@ def create_web_viewer(output_dir, data):
         });
     }
 
+    // 4. Filter Logic
     function toggleFilter(style) {
         const allBtn = document.getElementById('btn-all');
         const styleBtns = document.querySelectorAll('.filter-btn:not(#btn-all)');
+        
         if (style === 'all') { activeFilters.clear(); } 
         else { if (activeFilters.has(style)) activeFilters.delete(style); else activeFilters.add(style); }
 
+        // Update UI Classes
         if (activeFilters.size === 0) {
             allBtn.classList.add('active');
             styleBtns.forEach(b => b.classList.remove('active'));
-            render(DATA);
+            filteredData = DATA;
         } else {
             allBtn.classList.remove('active');
             styleBtns.forEach(b => {
                 if (activeFilters.has(b.dataset.style)) b.classList.add('active');
                 else b.classList.remove('active');
             });
-            const filtered = DATA.filter(item => activeFilters.has(item.style));
-            render(filtered);
+            filteredData = DATA.filter(item => activeFilters.has(item.style));
         }
+        
+        // Reset pagination when filters change
+        currentPage = 1;
+        applyPagination();
     }
 
+    // 5. Lightbox Logic
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lb-img');
     const lbHaiku = document.getElementById('lb-haiku');
     const lbInfo = document.getElementById('lb-info');
+    let lightboxIndex = 0; // Local index relative to currentViewData
 
     function openLightbox(index) {
-        currentIndex = index;
+        lightboxIndex = index;
         updateLightbox();
         lb.classList.add('active');
     }
 
     function updateLightbox() {
-        const item = currentItems[currentIndex];
+        const item = currentViewData[lightboxIndex];
         lbImg.src = "/output/" + item.filename;
         lbHaiku.innerText = item.haiku;
         lbInfo.innerText = `BLOCK #${item.block} // ${item.style}`;
     }
 
     function nav(dir) {
-        currentIndex += dir;
-        if (currentIndex < 0) currentIndex = currentItems.length - 1;
-        if (currentIndex >= currentItems.length) currentIndex = 0;
+        lightboxIndex += dir;
+        if (lightboxIndex < 0) lightboxIndex = currentViewData.length - 1;
+        if (lightboxIndex >= currentViewData.length) lightboxIndex = 0;
         updateLightbox();
     }
 
     // Delete Logic
     function deleteCurrent(e) {
         e.stopPropagation();
-        const item = currentItems[currentIndex];
+        const item = currentViewData[lightboxIndex];
         if (!confirm(`Are you sure you want to delete block #${item.block}?`)) return;
 
         fetch('/delete', {
@@ -268,12 +347,17 @@ def create_web_viewer(output_dir, data):
         })
         .then(res => {
             if (res.ok) {
+                // Remove from Master DATA
                 const globalIndex = DATA.indexOf(item);
                 if (globalIndex > -1) DATA.splice(globalIndex, 1);
-                currentItems.splice(currentIndex, 1);
                 
+                // Remove from Filtered Data
+                const filteredIndex = filteredData.indexOf(item);
+                if (filteredIndex > -1) filteredData.splice(filteredIndex, 1);
+
+                // Close and refresh current page view
                 lb.classList.remove('active');
-                render(currentItems);
+                applyPagination();
             } else {
                 alert("Error deleting file.");
             }
@@ -286,7 +370,8 @@ def create_web_viewer(output_dir, data):
         }
     }
 
-    render(DATA);
+    // Initial Load
+    applyPagination();
     
     document.addEventListener('keydown', (e) => {
         if (!lb.classList.contains('active')) return;
